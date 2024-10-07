@@ -10,6 +10,13 @@
 #include "lazy_importer.hpp"
 #include "finder_funcs.hpp"
 
+using namespace cgame;
+using namespace cgame::ballistics;
+using namespace cgame::ballistics::telecontrol;
+using namespace cgame::ballistics::telecontrol::gameui;
+using namespace localplayer;
+using namespace unit;
+
 namespace offsets
 {
     namespace cgame_offsets
@@ -360,6 +367,15 @@ int real_main(HMODULE hModule)
             {
                 unit_dump.add(offset.name, offset.offset);
             }
+
+            auto bbmin_offset = find_bbmin_ptr(local_unit);
+            unit_dump.add("bbmin_offset", bbmin_offset);
+
+            auto bbmax_offset = find_bbmax_ptr(local_unit);
+            unit_dump.add("bbmax_offset", bbmax_offset);
+
+            auto groundmovement_offset = find_groundmovement_ptr(local_unit);
+            unit_dump.add("groundmovement_offset", groundmovement_offset);
         }
     }
     telecontrol_dump.add_child(gameui_dump);
