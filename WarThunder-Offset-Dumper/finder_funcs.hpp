@@ -225,8 +225,10 @@ uintptr_t find_roundcaliber_ptr(uintptr_t ballistics)
     {
         //std::cout << "Getting pointer at " << std::hex << offset << std::dec << std::endl;
         auto value = *reinterpret_cast<float*>(ballistics + offset);
+       
         if (value == 0.022f)
         {
+            
             return offset;
         }
     }
@@ -234,7 +236,7 @@ uintptr_t find_roundcaliber_ptr(uintptr_t ballistics)
 
 uintptr_t find_roundlength_ptr(uintptr_t ballistics)
 {
-    for (uintptr_t offset = 0x1000; offset < 0x2000; offset += 0x8)
+    for (uintptr_t offset = 0x1000; offset < 0x2000; offset += 0x4)
     {
         //std::cout << "Getting pointer at " << std::hex << offset << std::dec << std::endl;
         auto value = *reinterpret_cast<float*>(ballistics + offset);
