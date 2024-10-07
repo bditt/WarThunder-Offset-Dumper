@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35312.102
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WarThunder-Offset-Dumper", "WarThunder-Offset-Dumper\WarThunder-Offset-Dumper.vcxproj", "{E3B9E449-C4AB-46C9-9FE6-E7118B74C572}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E3B9E449-C4AB-46C9-9FE6-E7118B74C572}.Debug|x64.ActiveCfg = Debug|x64
+		{E3B9E449-C4AB-46C9-9FE6-E7118B74C572}.Debug|x64.Build.0 = Debug|x64
+		{E3B9E449-C4AB-46C9-9FE6-E7118B74C572}.Debug|x86.ActiveCfg = Debug|Win32
+		{E3B9E449-C4AB-46C9-9FE6-E7118B74C572}.Debug|x86.Build.0 = Debug|Win32
+		{E3B9E449-C4AB-46C9-9FE6-E7118B74C572}.Release|x64.ActiveCfg = Release|x64
+		{E3B9E449-C4AB-46C9-9FE6-E7118B74C572}.Release|x64.Build.0 = Release|x64
+		{E3B9E449-C4AB-46C9-9FE6-E7118B74C572}.Release|x86.ActiveCfg = Release|Win32
+		{E3B9E449-C4AB-46C9-9FE6-E7118B74C572}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {65041CEE-CEE3-4B2F-9028-5E0319DA7E4D}
+	EndGlobalSection
+EndGlobal
