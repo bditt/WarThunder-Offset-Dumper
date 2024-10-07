@@ -310,6 +310,7 @@ int real_main(HMODULE hModule)
     offset_c localplayer_dump("localplayer_offsets");
 
     offset_c unit_dump("unit_offsets");
+    offset_c airmovement_dump("airmovement_offsets");
 
     if (IsValidPointer((void*)cgame_ptr))
     {
@@ -355,6 +356,11 @@ int real_main(HMODULE hModule)
     {
         localunit_offset = find_localunit_ptr(local_player_ptr);
         localplayer_dump.add("localunit_offset", localunit_offset);
+        auto localplayer_offsets = find_localplayer_offsets(local_player_ptr);
+        for (auto offset : localplayer_offsets)
+        {
+            localplayer_dump.add(offset.name, offset.offset);
+        }
     }
 
     if (localunit_offset != NULL)
@@ -374,16 +380,45 @@ int real_main(HMODULE hModule)
             auto bbmax_offset = find_bbmax_ptr(local_unit);
             unit_dump.add("bbmax_offset", bbmax_offset);
 
+            auto position_offset = find_position_ptr(local_unit);
+            unit_dump.add("position_offset", position_offset);
+            unit_dump.add("airmovement_offset", position_offset + 0x10);
+
+            auto airmovement = *reinterpret_cast<uintptr_t*>(local_unit + position_offset + 0x10);
+
+            if (IsValidPointer((void*)airmovement))
+            {
+                auto velocity_offset = airmovement::find_velocity_ptr(airmovement);
+                airmovement_dump.add("velocity_offset", velocity_offset);
+            }
+
             auto groundmovement_offset = find_groundmovement_ptr(local_unit);
             unit_dump.add("groundmovement_offset", groundmovement_offset);
         }
     }
+    //Setup CGame path.
     telecontrol_dump.add_child(gameui_dump);
     ballistics_dump.add_child(telecontrol_dump);
     cgame_dump.add_child(ballistics_dump);
+
+    //Add CGame to dump.
     offset_dumper.add_child(cgame_dump);
+
+    //Add localplayer to dump.
     offset_dumper.add_child(localplayer_dump);
+
+    //Add AirMovement to unit.
+    unit_dump.add_child(airmovement_dump);
+
+    //Add Unit to dump.
     offset_dumper.add_child(unit_dump);
+
+    //Add normal addresses to dump.
+    offset_dumper.add("cgame_offset", cgame_sig - game_base);    
+    offset_dumper.add("localplayer_offset", local_player_sig - game_base);
+    offset_dumper.add("hud_offset", hud_sig - game_base);
+    offset_dumper.add("yaw_offset", yaw_sig - game_base);
+    offset_dumper.add("alllistdata_offset", alllistdata_sig - game_base);
     offset_dumper.dump();
     //std::cout << "}" << std::endl;
 

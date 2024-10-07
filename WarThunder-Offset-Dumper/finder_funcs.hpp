@@ -64,6 +64,18 @@ public:
     float x, y, z;
 };
 
+class Vector3d
+{
+public:
+    double x, y, z;
+};
+
+struct offset_info
+{
+    std::string name;
+    uintptr_t offset;
+};
+
 bool IsValidPointer(void* ptr)
 {
     bool valid = ptr != nullptr && !IsBadReadPtr(ptr, sizeof(void*));
@@ -157,6 +169,20 @@ namespace cgame
 
     namespace ballistics
     {
+        uintptr_t find_bombpred_ptr(uintptr_t ballistics)
+        {
+            for (uintptr_t offset = 0x1000; offset < 0x2000; offset += 0x1)
+            {
+                auto value = *reinterpret_cast<Vector3*>(ballistics + offset);
+                if (are_floats_equal(value.x, 1996.467f) && are_floats_equal(value.y, 16.761f) && are_floats_equal(value.z, -2104.721f))//value > -4.731)
+                {
+                    return offset;
+                }
+            }
+
+            return NULL;
+        }
+
         uintptr_t find_roundvelocity_ptr(uintptr_t ballistics)
         {
             for (uintptr_t offset = 0x1000; offset < 0x2000; offset += 0x4)
@@ -164,7 +190,7 @@ namespace cgame
                 //std::cout << "Getting pointer at " << std::hex << offset << std::dec << std::endl;
                 auto value = *reinterpret_cast<float*>(ballistics + offset);
                 //std::cout << "X: " << mouse_x << std::endl;
-                if ((int)value == 1575)
+                if (are_floats_equal(value, 1030.000))
                 {
                     return offset;
                 }
@@ -177,7 +203,7 @@ namespace cgame
             {
                 //std::cout << "Getting pointer at " << std::hex << offset << std::dec << std::endl;
                 auto value = *reinterpret_cast<float*>(ballistics + offset);
-                if (value > 4.88f && value < 4.89) //4.88746
+                if (are_floats_equal(value, 0.102)) //4.88746
                 {
                     return offset;
                 }
@@ -193,9 +219,8 @@ namespace cgame
                 //std::cout << "Getting pointer at " << std::hex << offset << std::dec << std::endl;
                 auto value = *reinterpret_cast<float*>(ballistics + offset);
 
-                if (value == 0.022f)
+                if (are_floats_equal(value, 0.020))
                 {
-
                     return offset;
                 }
             }
@@ -207,7 +232,7 @@ namespace cgame
             {
                 //std::cout << "Getting pointer at " << std::hex << offset << std::dec << std::endl;
                 auto value = *reinterpret_cast<float*>(ballistics + offset);
-                if (value > 0.9f && value < 0.95)
+                if (are_floats_equal(value, 0.460))
                 {
                     return offset;
                 }
@@ -306,6 +331,53 @@ namespace cgame
 
 namespace localplayer
 {
+    std::vector<offset_info> find_localplayer_offsets(uintptr_t localplayer)
+    {
+        std::unordered_map<std::string, offset_info> found_offset;
+        std::vector<offset_info> offsetinfo;
+        for (uintptr_t offset = 0x0; offset < 0x4000; offset += 0x1)
+        {
+            auto name_ptr = *reinterpret_cast<void**>(localplayer + offset);
+            if (IsValidPointer(name_ptr))
+            {
+                char buf[0x50] = { 0 };
+                if (ReadProcessMemory(GetCurrentProcess(), name_ptr, buf, sizeof(buf) - 1, nullptr)) {
+                    buf[sizeof(buf) - 1] = '\0';
+                    std::string found_text = std::string(buf);
+
+                    if (!found_text.empty() && found_text.size() > 5)
+                    {
+                        bool invalid_string = false;
+                        for (int i = 0; i < found_text.size(); i++)
+                        {
+                            if (!isalpha(found_text.at(i)))
+                            {
+                                invalid_string = true;
+                                break;
+                            }
+                        }
+
+                        if (invalid_string)
+                            continue;
+
+                        if (found_offset.find(found_text) != found_offset.end())
+                        {
+                            std::cout << "Duplicate: " << found_text << " | " << std::hex << offset + 0x18 << std::dec << std::endl;
+                            continue;
+                        }
+
+                        offset_info info;
+                        info.name = found_text;
+                        info.offset = offset + 0x18;
+                        found_offset.emplace(found_text, info);
+                        offsetinfo.emplace_back(info);
+                    }
+                }
+            }
+        }
+        return offsetinfo;
+    }
+
     uintptr_t find_localunit_ptr(uintptr_t localplayer)
     {
         for (uintptr_t offset = 0x0; offset < 0x1000; offset += 0x1)
@@ -335,16 +407,10 @@ namespace localplayer
 
 namespace unit
 {
-    struct unit_offset_info
+    std::vector<offset_info> find_unit_offsets(uintptr_t localunit)
     {
-        std::string name;
-        uintptr_t offset;
-    };
-
-    std::vector<unit_offset_info> find_unit_offsets(uintptr_t localunit)
-    {
-        std::unordered_map<std::string, unit_offset_info> found_offset;
-        std::vector<unit_offset_info> offset_info;
+        std::unordered_map<std::string, offset_info> found_offset;
+        std::vector<offset_info> offsetinfo;
         for (uintptr_t offset = 0x0; offset < 0x4000; offset += 0x1)
         {
             auto name_ptr = *reinterpret_cast<void**>(localunit + offset);
@@ -376,24 +442,24 @@ namespace unit
                             continue;
                         }
 
-                        unit_offset_info info;
+                        offset_info info;
                         info.name = found_text;
                         info.offset = offset + 0x18;
                         found_offset.emplace(found_text, info);
-                        offset_info.emplace_back(info);
+                        offsetinfo.emplace_back(info);
                     }
                 }
             }
         }
-        return offset_info;
+        return offsetinfo;
     }
 
     uintptr_t find_bbmin_ptr(uintptr_t localunit)
     {
-        for (uintptr_t offset = 0x0; offset < 0x2000; offset += 0x1)
+        for (uintptr_t offset = 0x0; offset < 0x1000; offset += 0x1)
         {
             auto value = *reinterpret_cast<Vector3*>(localunit + offset);
-            if (are_floats_equal(value.x, -4.731f) && are_floats_equal(value.y, -0.002f) && are_floats_equal(value.z, -1.889f))//value > -4.731)
+            if (are_floats_equal(value.x, -7.562f) && are_floats_equal(value.y, -2.739f) && are_floats_equal(value.z, -6.199f))//value > -4.731)
             {
                 return offset;
             }
@@ -404,10 +470,24 @@ namespace unit
 
     uintptr_t find_bbmax_ptr(uintptr_t localunit)
     {
+        for (uintptr_t offset = 0x0; offset < 0x1000; offset += 0x1)
+        {
+            auto value = *reinterpret_cast<Vector3*>(localunit + offset);
+            if (are_floats_equal(value.x, 7.571f) && are_floats_equal(value.y, 3.812f) && are_floats_equal(value.z, 6.213f))//value > -4.731)
+            {
+                return offset;
+            }
+        }
+
+        return NULL;
+    }
+
+    uintptr_t find_position_ptr(uintptr_t localunit)
+    {
         for (uintptr_t offset = 0x0; offset < 0x2000; offset += 0x1)
         {
             auto value = *reinterpret_cast<Vector3*>(localunit + offset);
-            if (are_floats_equal(value.x, 5.451f) && are_floats_equal(value.y, 3.393f) && are_floats_equal(value.z, 1.829f))//value > -4.731)
+            if (are_floats_equal(value.x, 1996.494f) && are_floats_equal(value.y, 18.718f) && are_floats_equal(value.z, -2104.729f))//value > -4.731)
             {
                 return offset;
             }
@@ -463,6 +543,21 @@ namespace unit
             }
         }
         return NULL;
+    }
+
+    namespace airmovement
+    {
+        uintptr_t find_velocity_ptr(uintptr_t airmovement)
+        {
+            for (uintptr_t offset = 0x0; offset < 0x2000; offset += 0x1)
+            {
+                auto value = *reinterpret_cast<Vector3d*>(airmovement + offset);
+                if (are_floats_equal(value.x, -0.041) && are_floats_equal(value.y, 0.004) && are_floats_equal(value.z, 0.009))//value > -4.731)
+                {
+                    return offset;
+                }
+            }
+        }
     }
 
 }
