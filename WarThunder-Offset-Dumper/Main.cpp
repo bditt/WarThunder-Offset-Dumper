@@ -309,8 +309,8 @@ int real_main(HMODULE hModule)
         ballistics_offset = find_ballistics_ptr(cgame_ptr);
         cgame_dump.add("ballistics_offset", ballistics_offset);
 
-        camera_offset = find_camera_ptr(cgame_ptr);
-        cgame_dump.add("camera_offset", camera_offset);
+        //camera_offset = find_camera_ptr(cgame_ptr);
+        //cgame_dump.add("camera_offset", camera_offset);
 
         auto ballistics = *reinterpret_cast<uintptr_t*>(cgame_ptr + ballistics_offset);
         if (ballistics_offset != NULL)
