@@ -496,9 +496,42 @@ namespace unit
         return NULL;
     }
 
+    uintptr_t find_info_ptr(uintptr_t localunit)
+    {
+        for (uintptr_t offset = 0x1000; offset < 0x2000; offset += 0x8)
+        {
+            uintptr_t addr = *reinterpret_cast<uintptr_t*>(localunit + offset);
+            //std::cout << "Getting pointer at " << std::hex << offset << std::dec << std::endl;
+            if (IsValidPointer((void*)addr))
+            {
+                for (uintptr_t offset2 = 0x0; offset2 < 0x200; offset2 += 0x8)
+                {
+                    //std::cout << "Getting pointer2 at " << std::hex << offset2 << std::dec << std::endl;
+                    auto name_ptr = *reinterpret_cast<void**>(addr + offset2);
+                    //std::cout << "Name Pointer: " << std::hex << name_ptr << std::endl;
+                     // Check if the pointer is valid before dereferencing
+                    if (IsValidPointer(name_ptr)) {
+                        //std::cout << "Getting string!" << std::endl;
+                        char buf[0x50] = { 0 }; // Ensure the buffer is initialized
+                        // Copy data from the valid pointer to buf
+                        if (ReadProcessMemory(GetCurrentProcess(), name_ptr, buf, sizeof(buf) - 1, nullptr)) {
+                            buf[sizeof(buf) - 1] = '\0'; // Null-terminate the string to prevent overflow
+                            std::string found_text = std::string(buf);
+
+                            //std::cout << "Found Text: " << found_text << std::endl;
+                            if (!found_text.empty() && found_text.find("A-7K") != std::string::npos) {
+                                return offset;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     uintptr_t find_groundmovement_ptr(uintptr_t localunit)
     {
-        for (uintptr_t offset = 0x0; offset < 0x4000; offset += 0x1)
+        for (uintptr_t offset = 0x1500; offset < 0x4000; offset += 0x1)
         {
             //std::cout << "Getting pointer at " << std::hex << offset << std::dec << std::endl;
             auto name_ptr = *reinterpret_cast<void**>(localunit + offset);
@@ -513,28 +546,30 @@ namespace unit
                 {
                     buf[sizeof(buf) - 1] = '\0'; // Null-terminate the string to prevent overflow
                     std::string found_text = std::string(buf);
-
-                    //std::cout << "Found Text: " << found_text << std::endl;
-                    if (!found_text.empty() && found_text.find("moveSysTraceRI") != std::string::npos)
+                    if (!found_text.empty() && found_text.size() > 5)
                     {
-                        //std::cout << "moveSysTraceRI found!" << std::endl;
-                        for (uintptr_t offset2 = 0x1; offset2 < 0x100; offset2 += 0x1)
+                        bool invalid_string = false;
+                        for (int i = 0; i < found_text.size(); i++)
                         {
-                            auto newoffset = offset - offset2;
-                            //std::cout << "Checking offset: " << std::hex << newoffset << std::dec << std::endl;
-                            auto value_ptr = *reinterpret_cast<void**>(localunit + newoffset);
-                            // std::cout << "Name Pointer: " << std::hex << name_ptr << std::endl;
-                             // Check if the pointer is valid before dereferencing
-                            if (IsValidPointer(value_ptr))
+                            if (!isalpha(found_text.at(i)))
                             {
-                                //std::cout << "Offset " << std::hex << newoffset << std::dec << " is a valid pointer!" << std::endl;
-                                for (uintptr_t offset3 = 0x0; offset3 < 0x500; offset3 += 0x1)
+                                invalid_string = true;
+                                break;
+                            }
+                        }
+
+                        if (invalid_string)
+                            continue;
+
+                        //std::cout << "Found Text: " << found_text << std::endl;
+                        if (!found_text.empty() && found_text.find("timeToRearm") != std::string::npos)
+                        {
+                            for (uintptr_t offset2 = 0x0; offset2 < 0x1000; offset2 += 0x1)
+                            {
+                                auto value = *reinterpret_cast<void**>(localunit + offset + offset2);
+                                if ((uintptr_t)value == 0xBF800000BF800000)
                                 {
-                                    auto value = *reinterpret_cast<float*>((uintptr_t)value_ptr + offset3);
-                                    if (are_floats_equal(value, 180.0f))
-                                    {
-                                        return newoffset;
-                                    }
+                                    return offset + offset2;
                                 }
                             }
                         }

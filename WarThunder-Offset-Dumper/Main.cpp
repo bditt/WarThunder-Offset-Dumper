@@ -17,95 +17,6 @@ using namespace cgame::ballistics::telecontrol::gameui;
 using namespace localplayer;
 using namespace unit;
 
-namespace offsets
-{
-    namespace cgame_offsets
-    {
-        constexpr uintptr_t ballistics_offset = 0x3e0;
-        namespace ballistic_offsets
-        {
-            constexpr uintptr_t round_caliber_offset = 0x1d90;
-            constexpr uintptr_t round_length_offset = 0x2000;
-            constexpr uintptr_t round_mass_offset = 0x1d8c;
-            constexpr uintptr_t round_velocity_offset = 0x1d80;
-            constexpr uintptr_t telecontrol_offset = 0xae0;
-            namespace telecontrol_offsets
-            {
-                constexpr uintptr_t gameui_offset = 0x658;
-                namespace gameui_offsets
-                {
-                    constexpr uintptr_t mousepos_offset = 0xba8;
-                }
-            }
-        }
-    }
-    namespace localplayer_offsets
-    {
-        constexpr uintptr_t localunit_offset = 0x700;
-    }
-    namespace unit_offsets
-    {
-        constexpr uintptr_t allowBailout = 0xb48;
-        constexpr uintptr_t artillery = 0x1600;
-        constexpr uintptr_t bombDelayExplosion = 0x9b0;
-        constexpr uintptr_t briefMalfunctionState = 0x988;
-        constexpr uintptr_t brokenTurretDriveJammedTime = 0x6e8;
-        constexpr uintptr_t brokenTurretDriveMult = 0x738;
-        constexpr uintptr_t brokenTurretDriveSpeed = 0x710;
-        constexpr uintptr_t curNightVisionMode = 0x808;
-        constexpr uintptr_t delayWithFlightTime = 0x9d8;
-        constexpr uintptr_t dummyForDeathInfo = 0xa60;
-        constexpr uintptr_t dummyForUnitFlags = 0x1270;
-        constexpr uintptr_t dummyVarForCrewLayout = 0x838;
-        constexpr uintptr_t dummyVarForMissionAddText = 0x860;
-        constexpr uintptr_t enableGunners = 0x1210;
-        constexpr uintptr_t extinguishAssistant = 0xc90;
-        constexpr uintptr_t extinguishAssistee = 0xc60;
-        constexpr uintptr_t farthestExitZoneId = 0x1310;
-        constexpr uintptr_t hasModuleEffectsToRepair = 0x788;
-        constexpr uintptr_t invulnerable = 0x11e8;
-        constexpr uintptr_t isAlternativeShotFreq = 0x2c0;
-        constexpr uintptr_t isBreechDamaged = 0x760;
-        constexpr uintptr_t isNeedExtinguishHelp = 0x1ca0;
-        constexpr uintptr_t isNeedRepairHelp = 0x1c70;
-        constexpr uintptr_t isUnderwater = 0x1f70;
-        constexpr uintptr_t killer = 0x1ba0;
-        constexpr uintptr_t lastContactFrom = 0xa98;
-        constexpr uintptr_t lastContactTime = 0xaf8;
-        constexpr uintptr_t lastContactTimeRel = 0xb20;
-        constexpr uintptr_t lastContactTo = 0xac8;
-        constexpr uintptr_t lowRateUnitFlags = 0x12a0;
-        constexpr uintptr_t maskingFactor = 0x1d28;
-        constexpr uintptr_t moduleEffectsRepairAtTime = 0x7b0;
-        constexpr uintptr_t nextUseArtilleryTime = 0x1a80;
-        constexpr uintptr_t prepareExtinguishAssistantTime = 0x1a10;
-        constexpr uintptr_t prepareRepairAssistantTime = 0x19e8;
-        constexpr uintptr_t prepareRepairAssisteeTime = 0x19c0;
-        constexpr uintptr_t prepareRepairCooldownsTime = 0x1b38;
-        constexpr uintptr_t repairAssistant = 0xc30;
-        constexpr uintptr_t repairAssistee = 0xc00;
-        constexpr uintptr_t repairCooldowns = 0x1cd0;
-        constexpr uintptr_t rocketFuseDist = 0xa00;
-        constexpr uintptr_t scoutCooldown = 0x1548;
-        constexpr uintptr_t scoutStartTime = 0x1520;
-        constexpr uintptr_t smokeScreenActived = 0x1df8;
-        constexpr uintptr_t smokeScreenCount = 0x1dd0;
-        constexpr uintptr_t stealthArmyMask = 0x13d8;
-        constexpr uintptr_t stealthRadiusSq = 0x13b0;
-        constexpr uintptr_t superArtilleryCount = 0x1fc0;
-        constexpr uintptr_t supportPlaneCatapultsFuseMask = 0x928;
-        constexpr uintptr_t supportPlanesCount = 0x900;
-        constexpr uintptr_t timeToNextSmokeScreen = 0x1da8;
-        constexpr uintptr_t torpedoDiveDepth = 0xa28;
-        constexpr uintptr_t underwaterTime = 0x1f98;
-        constexpr uintptr_t unitArmyNo = 0x1350;
-        constexpr uintptr_t unitState = 0x12c8;
-        constexpr uintptr_t visualReloadProgress = 0x960;
-        constexpr uintptr_t vulnerableByUnitUId = 0x1240;
-    }
-}
-
-
 #pragma comment(lib, "Psapi.lib")
 
 #define in_range(x,a,b) (x>=a&&x<=b) 
@@ -383,6 +294,9 @@ int real_main(HMODULE hModule)
             auto position_offset = find_position_ptr(local_unit);
             unit_dump.add("position_offset", position_offset);
             unit_dump.add("airmovement_offset", position_offset + 0x10);
+
+            auto info_offset = find_info_ptr(local_unit);
+            unit_dump.add("info_offset", info_offset);
 
             auto airmovement = *reinterpret_cast<uintptr_t*>(local_unit + position_offset + 0x10);
 
