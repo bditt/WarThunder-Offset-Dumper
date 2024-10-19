@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <string>
 #include <string>
+#include <fstream>
 
 class offset_c
 {
@@ -29,26 +30,27 @@ public:
         children.emplace_back(child);
     }
 
-    void dump(int offset = 0)
+    void dump(std::ofstream& outfile, int offset = 0)
     {
         std::string spacer = "";
         for (int i = 0; i < offset; i++)
         {
             spacer += " ";
         }
-        std::cout << spacer << "namespace " << name_space << std::endl;
-        std::cout << spacer << "{" << std::endl;
+        outfile << spacer << "namespace " << name_space << std::endl;
+        outfile << spacer << "{" << std::endl;
         auto offset_space = spacer;
         offset_space += " ";
         for (auto& offset : offsets)
         {
-            std::cout << offset_space << "constexpr uintptr_t " << offset.first << " = 0x" << std::hex << offset.second << std::dec << "; " << std::endl;
+            outfile << offset_space << "constexpr uintptr_t " << offset.first << " = 0x" << std::hex << offset.second << std::dec << "; " << std::endl;
         }
         for (auto& child : children)
         {
-            child.dump(offset + 1);
+            child.dump(outfile, offset + 1);
         }
-        std::cout << spacer << "}" << std::endl;
+
+        outfile << spacer << "}" << std::endl;
     }
 };
 
@@ -102,31 +104,71 @@ bool are_floats_equal(float a, float b, float epsilon = 0.001f)
 
 namespace cgame
 {
+    uintptr_t find_unit_count_ptr(uintptr_t cgame, uintptr_t local_unit)
+    {
+        for (uintptr_t offset = 0x0; offset < 0x1000; offset += 0x1)
+        {
+            auto value1 = *reinterpret_cast<void**>(cgame + offset);
+            if (IsValidPointer(value1)) {
+                for (uintptr_t offset2 = 0x0; offset2 < 0x1000; offset2 += 0x1)
+                {
+                    auto value2 = *reinterpret_cast<void**>((uintptr_t)value1 + offset2);
+                    if (IsValidPointer(value2))
+                    {
+                        if ((uintptr_t)value2 == local_unit)
+                        {
+                            return offset;
+                        }
+                    }
+                }
+            }
+        }
+
+        return NULL;
+    }
+
     uintptr_t find_camera_ptr(uintptr_t cgame)
     {
-        for (uintptr_t offset = 0x0; offset < 0x1000; offset += 0x8)
+        for (uintptr_t offset = 0x500; offset < 0x2000; offset += 0x4)
         {
             uintptr_t addr = *reinterpret_cast<uintptr_t*>(cgame + offset);
             //std::cout << "Getting pointer at " << std::hex << offset << std::dec << std::endl;
             if (IsValidPointer((void*)addr))
             {
-                for (uintptr_t offset2 = 0x0; offset2 < 0x1000; offset2 += 0x8)
+                for (uintptr_t offset2 = 0x0; offset2 < 0x1000; offset2 += 0x4)
                 {
                     //std::cout << "Getting pointer2 at " << std::hex << offset2 << std::dec << std::endl;
                     auto name_ptr = *reinterpret_cast<void**>(addr + offset2);
                     //std::cout << "Name Pointer: " << std::hex << name_ptr << std::endl;
                      // Check if the pointer is valid before dereferencing
-                    if (IsValidPointer(name_ptr)) {
+                    if (IsValidPointer(name_ptr))
+                    {
                         //std::cout << "Getting string!" << std::endl;
                         char buf[0x50] = { 0 }; // Ensure the buffer is initialized
                         // Copy data from the valid pointer to buf
-                        if (ReadProcessMemory(GetCurrentProcess(), name_ptr, buf, sizeof(buf) - 1, nullptr)) {
+                        if (ReadProcessMemory(GetCurrentProcess(), name_ptr, buf, sizeof(buf) - 1, nullptr))
+                        {
                             buf[sizeof(buf) - 1] = '\0'; // Null-terminate the string to prevent overflow
                             std::string found_text = std::string(buf);
 
-                            //std::cout << "Found Text: " << found_text << std::endl;
-                            if (!found_text.empty() && found_text.find("lense_color") != std::string::npos) {
-                                return offset;
+                            bool invalid_string = false;
+                            for (int i = 0; i < found_text.size(); i++)
+                            {
+                                if (!isalpha(found_text.at(i)) && found_text.at(i) != '_')
+                                {
+                                    invalid_string = true;
+                                    break;
+                                }
+                            }
+
+                            if (invalid_string)
+                                continue;
+
+                            if (!found_text.empty())
+                            {
+                                if (found_text.find("lense_color") != std::string::npos) {
+                                    return offset;
+                                }
                             }
                         }
                     }
@@ -134,6 +176,50 @@ namespace cgame
             }
         }
         return NULL;
+    }
+
+    namespace camera
+    {
+        uintptr_t find_camera_position_ptr(uintptr_t camera)
+        {
+            for (uintptr_t offset = 0x0; offset < 0x1000; offset += 0x1)
+            {
+                auto value = *reinterpret_cast<Vector3*>(camera + offset);
+                if (are_floats_equal(value.x, 2013.586f, 0.01F) &&
+                    are_floats_equal(value.y, 21.049f, 0.01F) &&
+                    are_floats_equal(value.z, -2107.117f, 0.01F))
+                {
+                    return offset;
+                }
+
+                if (are_floats_equal(value.x, 2013.587f, 0.01F) &&
+                    are_floats_equal(value.y, 21.049f, 0.01F) &&
+                    are_floats_equal(value.z, -2107.116f, 0.01F))
+                {
+                    return offset;
+                }
+            }
+
+            return NULL;
+        }
+
+        uintptr_t find_camera_matrix_ptr(uintptr_t camera)
+        {
+            for (uintptr_t offset = 0x0; offset < 0x1000; offset += 0x1)
+            {
+                auto value = *reinterpret_cast<Vector3*>(camera + offset);
+                auto value2 = *reinterpret_cast<Vector3*>(camera + offset + 0xC);
+                if (are_floats_equal(value.x, 0.138f) &&
+                    are_floats_equal(value.y, 0.029f) &&
+                    are_floats_equal(value2.x, -0.990f) &&
+                    are_floats_equal(value2.z, 1.778f))
+                {
+                    return offset;
+                }
+            }
+
+            return NULL;
+        }
     }
 
     uintptr_t find_ballistics_ptr(uintptr_t cgame)
@@ -195,6 +281,8 @@ namespace cgame
                     return offset;
                 }
             }
+
+            return NULL;
         }
 
         uintptr_t find_roundmass_ptr(uintptr_t ballistics)
@@ -224,6 +312,8 @@ namespace cgame
                     return offset;
                 }
             }
+
+            return NULL;
         }
 
         uintptr_t find_roundlength_ptr(uintptr_t ballistics)
@@ -237,6 +327,8 @@ namespace cgame
                     return offset;
                 }
             }
+
+            return NULL;
         }
 
         uintptr_t find_telecontrol_ptr(uintptr_t ballistics)
@@ -527,6 +619,89 @@ namespace unit
                 }
             }
         }
+
+        return NULL;
+    }
+
+    uintptr_t find_turret_ptr(uintptr_t localunit)
+    {
+        for (uintptr_t offset = 0x1000; offset < 0x2000; offset += 0x1)
+        {
+            uintptr_t addr = *reinterpret_cast<uintptr_t*>(localunit + offset);
+            //std::cout << "Getting pointer at " << std::hex << offset << std::dec << std::endl;
+            if (IsValidPointer((void*)addr))
+            {
+                for (uintptr_t offset2 = 0x0; offset2 < 0x200; offset2 += 0x1)
+                {
+                    //std::cout << "Getting pointer2 at " << std::hex << offset2 << std::dec << std::endl;
+                    auto name_ptr = *reinterpret_cast<void**>(addr + offset2);
+                    //std::cout << "Name Pointer: " << std::hex << name_ptr << std::endl;
+                     // Check if the pointer is valid before dereferencing
+                    if (IsValidPointer(name_ptr)) {
+                        //std::cout << "Getting string!" << std::endl;
+                        char buf[0x50] = { 0 }; // Ensure the buffer is initialized
+                        // Copy data from the valid pointer to buf
+                        if (ReadProcessMemory(GetCurrentProcess(), name_ptr, buf, sizeof(buf) - 1, nullptr)) {
+                            buf[sizeof(buf) - 1] = '\0'; // Null-terminate the string to prevent overflow
+                            std::string found_text = std::string(buf);
+
+                            //std::cout << "Found Text: " << found_text << std::endl;
+                            if (!found_text.empty() && found_text.find("optic1_turret") != std::string::npos) {
+                                return offset;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return NULL;
+    }
+
+    namespace turret
+    {
+        uintptr_t find_weapon_information_ptr(uintptr_t turret)
+        {
+            for (uintptr_t offset = 0x0; offset < 0x2000; offset += 0x1)
+            {
+                uintptr_t addr = *reinterpret_cast<uintptr_t*>(turret + offset);
+                //std::cout << "Getting pointer at " << std::hex << offset << std::dec << std::endl;
+                if (IsValidPointer((void*)addr))
+                {
+                    for (uintptr_t offset2 = 0x0; offset2 < 0x1000; offset2 += 0x1)
+                    {
+                        auto value = *reinterpret_cast<Vector3*>(addr + offset2);
+                        if (are_floats_equal(value.x, 1996.494f) &&
+                            are_floats_equal(value.y, 18.718f) &&
+                            are_floats_equal(value.z, -2104.729f))
+                        {
+                            return offset;
+                        }
+                    }
+                }
+            }
+
+            return NULL;
+        }
+
+        namespace weapon_information
+        {
+            uintptr_t find_weapon_position_ptr(uintptr_t weapon_info)
+            {
+                for (uintptr_t offset = 0x0; offset < 0x1000; offset += 0x1)
+                {
+                    auto value = *reinterpret_cast<Vector3*>(weapon_info + offset);
+                    if (are_floats_equal(value.x, 1996.494f) &&
+                        are_floats_equal(value.y, 18.718f) &&
+                        are_floats_equal(value.z, -2104.729f))
+                    {
+                        return offset;
+                    }
+                }
+
+                return NULL;
+            }
+        }
     }
 
     uintptr_t find_groundmovement_ptr(uintptr_t localunit)
@@ -580,6 +755,26 @@ namespace unit
         return NULL;
     }
 
+    uintptr_t find_rotation_matrix_ptr(uintptr_t localunit)
+    {
+        for (uintptr_t offset = 0x0; offset < 0x1000; offset += 0x1)
+        {
+            auto value = *reinterpret_cast<Vector3*>(localunit + offset);
+            auto value2 = *reinterpret_cast<Vector3*>(localunit + offset + 0xC);
+            if (are_floats_equal(value.x, -0.986f) &&
+                are_floats_equal(value.y, 0.097f) &&
+                are_floats_equal(value.z, 0.138f) &&
+                are_floats_equal(value2.x, 0.096f) &&
+                are_floats_equal(value2.y, 0.995f) &&
+                are_floats_equal(value2.z, -0.013f))
+            {
+                return offset;
+            }
+        }
+
+        return NULL;
+    }
+
     namespace airmovement
     {
         uintptr_t find_velocity_ptr(uintptr_t airmovement)
@@ -592,6 +787,8 @@ namespace unit
                     return offset;
                 }
             }
+
+            return NULL;
         }
     }
 

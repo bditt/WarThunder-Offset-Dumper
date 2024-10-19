@@ -4,18 +4,21 @@
 #include <stdio.h>
 #include <inttypes.h>
 #include <thread>
-#include <psapi.h> // Include Psapi.h for GetModuleInformation
-#include <Zydis/Zydis.h>
+#include <psapi.h>
+#include <filesystem>
 
 #include "lazy_importer.hpp"
 #include "finder_funcs.hpp"
 
 using namespace cgame;
+using namespace cgame::camera;
 using namespace cgame::ballistics;
 using namespace cgame::ballistics::telecontrol;
 using namespace cgame::ballistics::telecontrol::gameui;
 using namespace localplayer;
 using namespace unit;
+using namespace unit::turret;
+using namespace unit::turret::weapon_information;
 
 #pragma comment(lib, "Psapi.lib")
 
@@ -179,30 +182,59 @@ int real_main(HMODULE hModule)
 {
     start_console();
     auto game_base = (uintptr_t)GetModuleHandle(NULL);
-    std::cout << "Game Base: " << std::hex << game_base << std::dec << std::endl;
-    auto cgame = *reinterpret_cast<uintptr_t*>(game_base + 0x51A82B0);
-    std::cout << "cGame: " << std::hex << cgame << std::dec << std::endl;
     auto cgame_sig = find_rel("48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? F3 0F 10 8D F8 06 00 00");
-    std::cout << "#define cGameOffset 0x" << std::hex << cgame_sig - game_base << std::dec << std::endl;
-    auto cgame_ptr = *reinterpret_cast<uintptr_t*>(cgame_sig);
-    std::cout << "cgame_ptr: " << std::hex << cgame_ptr << std::dec << std::endl;
-
     auto local_player_sig = find_rel("48 8B 0D ?? ?? ?? ?? B0 FF 48 85 C9 74 04 0F B6 41 08 88 44 24 42 48 8D 05 ?? ?? ?? ?? 48 89 44 24 28 48 8D 4C 24 28 B2 FF E8 ?? ?? ?? ?? 48 89 7C 24 28 83 7C 24 48 00 79 10");
-    std::cout << "#define localplayerOffset 0x" << std::hex << local_player_sig - game_base << std::dec << std::endl;
+    auto hud_sig = find_rel("48 8B 15 ?? ?? ?? ?? 0F 57 C0 0F 2E 82 94 03 00 00");
+    auto yaw_sig = find_rel("48 8B 0D ?? ?? ?? ?? 48 89 88 1C 22 00 00");
+    auto alllistdata_sig = find_rel("48 8D 0D ? ? ? ? 4C 8D 44 24 ? 89 FA 41 B9 ? ? ? ? E8 ? ? ? ? 48 85 C0 74 50");
+
+    if (cgame_sig < 0x100000)
+    {
+        std::cout << "CGame Sig failed!" << std::endl;
+        return 0;
+    }
+
+    if (local_player_sig < 0x100000)
+    {
+        std::cout << "LocalPlayer Sig failed!" << std::endl;
+        return 0;
+    }
+
+    if (hud_sig < 0x100000)
+    {
+        std::cout << "HUD Sig failed!" << std::endl;
+        return 0;
+    }
+
+    if (yaw_sig < 0x100000)
+    {
+        std::cout << "Yaw Sig failed!" << std::endl;
+        return 0;
+    }
+
+    if (alllistdata_sig < 0x100000)
+    {
+        std::cout << "AllListData Sig failed!" << std::endl;
+        return 0;
+    }
+
+
+    auto cgame_ptr = *reinterpret_cast<uintptr_t*>(cgame_sig);
     auto local_player_ptr = *reinterpret_cast<uintptr_t*>(local_player_sig);
+
+    // Some debug info for me.
+    std::cout << "Game Base: " << std::hex << game_base << std::dec << std::endl;
+    std::cout << "cgame_ptr: " << std::hex << cgame_ptr << std::dec << std::endl;
     std::cout << "local_player_ptr: " << std::hex << local_player_ptr << std::dec << std::endl;
 
-
-    auto hud_sig = find_rel("48 8B 15 ?? ?? ?? ?? 0F 57 C0 0F 2E 82 94 03 00 00");
-    std::cout << "#define hudOffset 0x" << std::hex << hud_sig - game_base << std::dec << std::endl;
-
-
-    auto yaw_sig = find_rel("48 8B 0D ?? ?? ?? ?? 48 89 88 1C 22 00 00");
-    std::cout << "#define yawOffset 0x" << std::hex << yaw_sig - game_base << std::dec << std::endl;
-
-    //48 8D 0D ? ? ? ? 4C 8D 44 24 ? 89 FA 41 B9 ? ? ? ? E8 ? ? ? ? 48 85 C0 74 50
-    auto alllistdata_sig = find_rel("48 8D 0D ? ? ? ? 4C 8D 44 24 ? 89 FA 41 B9 ? ? ? ? E8 ? ? ? ? 48 85 C0 74 50");
-    std::cout << "#define allListData 0x" << std::hex << alllistdata_sig - game_base << std::dec << std::endl;
+    std::cout << "Starting dumper!" << std::endl;
+    std::remove("dump.hpp");
+    std::ofstream outfile("dump.hpp");
+    if (!outfile.is_open())
+    {
+        std::cerr << "Error opening dump file!" << std::endl;
+        return 0;
+    }
 
     uintptr_t camera_offset = NULL;
     uintptr_t ballistics_offset = NULL;
@@ -221,19 +253,41 @@ int real_main(HMODULE hModule)
     offset_c localplayer_dump("localplayer_offsets");
 
     offset_c unit_dump("unit_offsets");
+    offset_c turret_dump("turret_offsets");
+    offset_c weapon_information_dump("weapon_information_offsets");
     offset_c airmovement_dump("airmovement_offsets");
 
     if (IsValidPointer((void*)cgame_ptr))
     {
+        std::cout << "Dumping CGame!" << std::endl;
         ballistics_offset = find_ballistics_ptr(cgame_ptr);
         cgame_dump.add("ballistics_offset", ballistics_offset);
 
-        //camera_offset = find_camera_ptr(cgame_ptr);
-        //cgame_dump.add("camera_offset", camera_offset);
+        camera_offset = find_camera_ptr(cgame_ptr);
+        cgame_dump.add("camera_offset", camera_offset);
+
+        if (camera_offset != NULL)
+        {
+            std::cout << "Dumping Camera!" << std::endl;
+            auto camera = *reinterpret_cast<uintptr_t*>(cgame_ptr + camera_offset);
+            if (camera > 0x100000)
+            {
+                auto camera_position_offset = find_camera_position_ptr(camera);
+                camera_dump.add("camera_position_offset", camera_position_offset);
+
+                auto camera_matrix_offset = find_camera_matrix_ptr(camera);
+                camera_dump.add("camera_matrix_offset", camera_matrix_offset);
+            }
+            cgame_dump.add_child(camera_dump);
+        }
 
         auto ballistics = *reinterpret_cast<uintptr_t*>(cgame_ptr + ballistics_offset);
         if (ballistics_offset != NULL)
         {
+            std::cout << "Dumping Ballistics!" << std::endl;
+            auto bomb_prediction_offset = find_bombpred_ptr(ballistics);
+            ballistics_dump.add("bomb_prediction_offset", bomb_prediction_offset);
+
             auto round_velocity_offset = find_roundvelocity_ptr(ballistics);
             ballistics_dump.add("round_velocity_offset", round_velocity_offset);
 
@@ -250,27 +304,35 @@ int real_main(HMODULE hModule)
             ballistics_dump.add("telecontrol_offset", telecontrol_offset);
             if (telecontrol_offset != 0)
             {
+                std::cout << "Dumping Telecontrol!" << std::endl;
                 auto telecontrol = *reinterpret_cast<uintptr_t*>(ballistics + telecontrol_offset);
                 gameui_offset = find_gameui_ptr(telecontrol);
                 telecontrol_dump.add("gameui_offset", gameui_offset);
                 if (gameui_offset != 0)
                 {
+                    std::cout << "Dumping GameUI!" << std::endl;
                     auto gameui = *reinterpret_cast<uintptr_t*>(telecontrol + gameui_offset);
                     mousepos_offset = find_mouseposition_ptr(gameui);
                     gameui_dump.add("mousepos_offset", mousepos_offset);
+                    telecontrol_dump.add_child(gameui_dump);
                 }
+
+                ballistics_dump.add_child(telecontrol_dump);
             }
+
+            cgame_dump.add_child(ballistics_dump);
         }
     }
 
     if (IsValidPointer((void*)local_player_ptr))
     {
+        std::cout << "Dumping LocalPlayer!" << std::endl;
         localunit_offset = find_localunit_ptr(local_player_ptr);
         localplayer_dump.add("localunit_offset", localunit_offset);
         auto localplayer_offsets = find_localplayer_offsets(local_player_ptr);
         for (auto offset : localplayer_offsets)
         {
-            localplayer_dump.add(offset.name, offset.offset);
+            localplayer_dump.add(offset.name + "_offset", offset.offset);
         }
     }
 
@@ -279,10 +341,16 @@ int real_main(HMODULE hModule)
         auto local_unit = *reinterpret_cast<uintptr_t*>(local_player_ptr + localunit_offset);
         if (IsValidPointer((void*)local_unit))
         {
+            std::cout << "Dumping Unit!" << std::endl;
+            auto unit_list_offset = find_unit_count_ptr(cgame_ptr, local_unit);
+            //Ignore how terrible this unit list shit is, but it works.
+            cgame_dump.add("unit_count_offset", unit_list_offset + 0x30 + 0x8);
+            cgame_dump.add("unit_list_offset", unit_list_offset + 0x30);
+
             auto unit_offset = find_unit_offsets(local_unit);
             for (auto offset : unit_offset)
             {
-                unit_dump.add(offset.name, offset.offset);
+                unit_dump.add(offset.name + "_offset", offset.offset);
             }
 
             auto bbmin_offset = find_bbmin_ptr(local_unit);
@@ -298,6 +366,28 @@ int real_main(HMODULE hModule)
             auto info_offset = find_info_ptr(local_unit);
             unit_dump.add("info_offset", info_offset);
 
+            auto turret_offset = find_turret_ptr(local_unit);
+            unit_dump.add("turret_offset", turret_offset);
+
+            if (turret_offset != NULL)
+            {
+                auto turret = *reinterpret_cast<uintptr_t*>(local_unit + turret_offset);
+                auto weapon_information_offset = find_weapon_information_ptr(turret);
+                turret_dump.add("weapon_information_offset", weapon_information_offset);
+                if (weapon_information_offset != NULL)
+                {
+                    auto weapon_information = *reinterpret_cast<uintptr_t*>(turret + weapon_information_offset);
+                    auto weapon_position_offset = find_weapon_position_ptr(weapon_information);
+                    weapon_information_dump.add("weapon_position_offset", weapon_position_offset);
+                    turret_dump.add_child(weapon_information_dump);
+                }
+
+                unit_dump.add_child(turret_dump);
+            }
+
+            auto rotation_matrix_offset = find_rotation_matrix_ptr(local_unit);
+            unit_dump.add("rotation_matrix_offset", rotation_matrix_offset);
+
             auto airmovement = *reinterpret_cast<uintptr_t*>(local_unit + position_offset + 0x10);
 
             if (IsValidPointer((void*)airmovement))
@@ -310,10 +400,8 @@ int real_main(HMODULE hModule)
             unit_dump.add("groundmovement_offset", groundmovement_offset);
         }
     }
-    //Setup CGame path.
-    telecontrol_dump.add_child(gameui_dump);
-    ballistics_dump.add_child(telecontrol_dump);
-    cgame_dump.add_child(ballistics_dump);
+
+    std::cout << "Setting up dump order!" << std::endl;
 
     //Add CGame to dump.
     offset_dumper.add_child(cgame_dump);
@@ -333,11 +421,17 @@ int real_main(HMODULE hModule)
     offset_dumper.add("hud_offset", hud_sig - game_base);
     offset_dumper.add("yaw_offset", yaw_sig - game_base);
     offset_dumper.add("alllistdata_offset", alllistdata_sig - game_base);
-    offset_dumper.dump();
-    //std::cout << "}" << std::endl;
 
 
-    //std::cout << "Done!" << std::endl;
+    std::cout << "Writing Dump!" << std::endl;
+    offset_dumper.dump(outfile);
+    outfile.close();
+
+    std::cout << "Game dumped!" << std::endl;
+
+    char path[MAX_PATH];
+    GetModuleFileNameA(NULL, path, MAX_PATH);
+    std::cout << "Dump located at: " << std::filesystem::path(path).parent_path().string() << "\\dump.hpp" << std::endl;
 
     while (!GetAsyncKeyState(VK_END))
     {
