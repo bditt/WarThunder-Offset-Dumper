@@ -32,11 +32,15 @@ public:
 
     void dump(std::ofstream& outfile, int offset = 0)
     {
+        if (offset == 0)
+            outfile << "//Generated using bditt's War Thunder dumper! https://github.com/bditt/WarThunder-Offset-Dumper " << std::endl;
+
         std::string spacer = "";
         for (int i = 0; i < offset; i++)
         {
             spacer += " ";
         }
+        
         outfile << spacer << "namespace " << name_space << std::endl;
         outfile << spacer << "{" << std::endl;
         auto offset_space = spacer;
