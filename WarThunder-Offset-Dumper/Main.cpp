@@ -181,6 +181,8 @@ void start_console()
 int real_main(HMODULE hModule)
 {
     start_console();
+    SetConsoleTitleA("bditt's War Thunder offset dumper!");
+
     auto game_base = (uintptr_t)GetModuleHandle(NULL);
     auto cgame_sig = find_rel("48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? F3 0F 10 8D F8 06 00 00");
     auto local_player_sig = find_rel("48 8B 0D ?? ?? ?? ?? B0 FF 48 85 C9 74 04 0F B6 41 08 88 44 24 42 48 8D 05 ?? ?? ?? ?? 48 89 44 24 28 48 8D 4C 24 28 B2 FF E8 ?? ?? ?? ?? 48 89 7C 24 28 83 7C 24 48 00 79 10");
