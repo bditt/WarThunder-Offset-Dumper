@@ -47,7 +47,10 @@ public:
         offset_space += " ";
         for (auto& offset : offsets)
         {
-            outfile << offset_space << "constexpr uintptr_t " << offset.first << " = 0x" << std::hex << offset.second << std::dec << "; " << std::endl;
+            if (offset.second != NULL)
+                outfile << offset_space << "constexpr uintptr_t " << offset.first << " = 0x" << std::hex << offset.second << std::dec << "; " << std::endl;
+            else
+                outfile << offset_space << "//constexpr uintptr_t " << offset.first << " = 0x" << std::hex << offset.second << std::dec << "; // FAILED TO GRAB" << std::endl;
         }
         for (auto& child : children)
         {
@@ -84,21 +87,29 @@ struct offset_info
 
 bool IsValidPointer(void* ptr)
 {
-    bool valid = ptr != nullptr && !IsBadReadPtr(ptr, sizeof(void*));
-    if (!valid)
-        return false;
-
-    MEMORY_BASIC_INFORMATION mbi;
-    if (VirtualQuery(ptr, &mbi, sizeof(mbi)))
+    try
     {
-        DWORD protect = mbi.Protect;
-        if (protect & (PAGE_READONLY | PAGE_READWRITE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE))
+        if (!ptr || reinterpret_cast<uintptr_t>(ptr) <= 0x100000)
         {
-            return true;
+            // If ptr is null or below the safe threshold, it is invalid.
+            return false;
         }
-    }
 
-    return false;
+        MEMORY_BASIC_INFORMATION mbi;
+        if (VirtualQuery(ptr, &mbi, sizeof(mbi)) == 0)
+        {
+            // VirtualQuery failed, so the pointer is likely invalid.
+            return false;
+        }
+
+        // Check if the pointer is within readable pages.
+        DWORD protect = mbi.Protect;
+        return (protect & (PAGE_READONLY | PAGE_READWRITE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE)) != 0;
+    }
+    catch (...)
+    {
+        return false;
+    }
 }
 
 bool are_floats_equal(float a, float b, float epsilon = 0.001f)
@@ -228,18 +239,18 @@ namespace cgame
 
     uintptr_t find_ballistics_ptr(uintptr_t cgame)
     {
-        for (uintptr_t offset = 0x0; offset < 0x1000; offset += 0x8)
+        for (uintptr_t offset = 0x300; offset < 0x1000; offset += 0x4)
         {
             __try
             {
-                //std::cout << "Searching offset: " << std::hex << offset << std::dec << std::endl;
-                auto pointer = *reinterpret_cast<cBallistics**>(cgame + offset);
-                if (IsValidPointer(pointer))
+                std::cout << "Searching offset: " << std::hex << offset << std::dec << std::endl;
+                auto pointer = *reinterpret_cast<uintptr_t*>(cgame + offset);
+                if (IsValidPointer((void*)pointer))
                 {
                     //std::cout << "Pointer: " << std::hex << pointer << std::dec << std::endl;
                     if ((uintptr_t)pointer > 0x1000000 || (uintptr_t)pointer != 0x10101010000)
                     {
-                        int64_t val1 = pointer->N0000027F;
+                        int64_t val1 = ((cBallistics*)pointer)->N0000027F;
                         //std::cout << "Val1: " << val1 << std::endl;
                         if (val1 == -4294967296) //
                         {

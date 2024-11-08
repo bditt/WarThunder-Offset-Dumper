@@ -220,6 +220,12 @@ int real_main(HMODULE hModule)
         return 0;
     }
 
+    std::cout << "alllistdata_sig: 0x" << std::hex << alllistdata_sig - game_base << std::dec << std::endl;
+    std::cout << "cgame_sig: 0x" << std::hex << cgame_sig - game_base << std::dec << std::endl;
+    std::cout << "hud_sig: 0x" << std::hex << hud_sig - game_base << std::dec << std::endl;
+    std::cout << "local_player_sig: 0x" << std::hex << local_player_sig - game_base << std::dec << std::endl;
+    std::cout << "yaw_sig: 0x" << std::hex << yaw_sig - game_base << std::dec << std::endl;
+
 
     auto cgame_ptr = *reinterpret_cast<uintptr_t*>(cgame_sig);
     auto local_player_ptr = *reinterpret_cast<uintptr_t*>(local_player_sig);
@@ -344,41 +350,52 @@ int real_main(HMODULE hModule)
         if (IsValidPointer((void*)local_unit))
         {
             std::cout << "Dumping Unit!" << std::endl;
-            auto unit_list_offset = find_unit_count_ptr(cgame_ptr, local_unit);
-            //Ignore how terrible this unit list shit is, but it works.
-            cgame_dump.add("unit_count_offset", unit_list_offset + 0x30 + 0x8);
-            cgame_dump.add("unit_list_offset", unit_list_offset + 0x30);
+            //auto unit_list_offset = find_unit_count_ptr(cgame_ptr, local_unit);
+            ////Ignore how terrible this unit list shit is, but it works.
+            //std::cout << "Dumping unit_count_offset!" << std::endl;
+            //cgame_dump.add("unit_count_offset", unit_list_offset + 0x30 + 0x8);
+            //std::cout << "Dumping unit_list_offset!" << std::endl;
+            //cgame_dump.add("unit_list_offset", unit_list_offset + 0x30);
 
+            std::cout << "Dumping Unit_offsets!" << std::endl;
             auto unit_offset = find_unit_offsets(local_unit);
             for (auto offset : unit_offset)
             {
                 unit_dump.add(offset.name + "_offset", offset.offset);
             }
 
+            std::cout << "Dumping bbmin_offset!" << std::endl;
             auto bbmin_offset = find_bbmin_ptr(local_unit);
             unit_dump.add("bbmin_offset", bbmin_offset);
 
+            std::cout << "Dumping bbmax_offset!" << std::endl;
             auto bbmax_offset = find_bbmax_ptr(local_unit);
             unit_dump.add("bbmax_offset", bbmax_offset);
 
+            std::cout << "Dumping position_offset!" << std::endl;
             auto position_offset = find_position_ptr(local_unit);
             unit_dump.add("position_offset", position_offset);
+            std::cout << "Dumping airmovement_offset!" << std::endl;
             unit_dump.add("airmovement_offset", position_offset + 0x10);
 
+            std::cout << "Dumping info_offset!" << std::endl;
             auto info_offset = find_info_ptr(local_unit);
             unit_dump.add("info_offset", info_offset);
 
+            std::cout << "Dumping turret_offset!" << std::endl;
             auto turret_offset = find_turret_ptr(local_unit);
             unit_dump.add("turret_offset", turret_offset);
 
             if (turret_offset != NULL)
             {
                 auto turret = *reinterpret_cast<uintptr_t*>(local_unit + turret_offset);
+                std::cout << "Dumping weapon_information_offset!" << std::endl;
                 auto weapon_information_offset = find_weapon_information_ptr(turret);
                 turret_dump.add("weapon_information_offset", weapon_information_offset);
                 if (weapon_information_offset != NULL)
                 {
                     auto weapon_information = *reinterpret_cast<uintptr_t*>(turret + weapon_information_offset);
+                    std::cout << "Dumping weapon_position_offset!" << std::endl;
                     auto weapon_position_offset = find_weapon_position_ptr(weapon_information);
                     weapon_information_dump.add("weapon_position_offset", weapon_position_offset);
                     turret_dump.add_child(weapon_information_dump);
@@ -387,17 +404,21 @@ int real_main(HMODULE hModule)
                 unit_dump.add_child(turret_dump);
             }
 
+            std::cout << "Dumping rotation_matrix_offset!" << std::endl;
             auto rotation_matrix_offset = find_rotation_matrix_ptr(local_unit);
             unit_dump.add("rotation_matrix_offset", rotation_matrix_offset);
 
+            std::cout << "Dumping airmovement!" << std::endl;
             auto airmovement = *reinterpret_cast<uintptr_t*>(local_unit + position_offset + 0x10);
 
             if (IsValidPointer((void*)airmovement))
             {
+                std::cout << "Dumping velocity_offset!" << std::endl;
                 auto velocity_offset = airmovement::find_velocity_ptr(airmovement);
                 airmovement_dump.add("velocity_offset", velocity_offset);
             }
 
+            std::cout << "Dumping groundmovement_offset!" << std::endl;
             auto groundmovement_offset = find_groundmovement_ptr(local_unit);
             unit_dump.add("groundmovement_offset", groundmovement_offset);
         }
