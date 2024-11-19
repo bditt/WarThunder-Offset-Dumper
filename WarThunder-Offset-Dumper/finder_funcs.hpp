@@ -117,6 +117,11 @@ bool are_floats_equal(float a, float b, float epsilon = 0.001f)
     return std::fabs(a - b) < epsilon;
 }
 
+bool are_doubles_equal(double a, double b, double epsilon = 0.001f)
+{
+    return std::abs(a - b) < epsilon;
+}
+
 namespace cgame
 {
     uintptr_t find_unit_count_ptr(uintptr_t cgame, uintptr_t local_unit)
@@ -150,39 +155,43 @@ namespace cgame
             //std::cout << "Getting pointer at " << std::hex << offset << std::dec << std::endl;
             if (IsValidPointer((void*)addr))
             {
-                for (uintptr_t offset2 = 0x0; offset2 < 0x1000; offset2 += 0x4)
+                for (uintptr_t offset2 = 0x0; offset2 < 0x1000; offset2 += 0x8)
                 {
                     //std::cout << "Getting pointer2 at " << std::hex << offset2 << std::dec << std::endl;
-                    auto name_ptr = *reinterpret_cast<void**>(addr + offset2);
-                    //std::cout << "Name Pointer: " << std::hex << name_ptr << std::endl;
-                     // Check if the pointer is valid before dereferencing
-                    if (IsValidPointer(name_ptr))
+                    if (IsValidPointer((void*)(addr + offset2)))
                     {
-                        //std::cout << "Getting string!" << std::endl;
-                        char buf[0x50] = { 0 }; // Ensure the buffer is initialized
-                        // Copy data from the valid pointer to buf
-                        if (ReadProcessMemory(GetCurrentProcess(), name_ptr, buf, sizeof(buf) - 1, nullptr))
+                        auto name_ptr = *reinterpret_cast<void**>(addr + offset2);
+                        //std::cout << "Name Pointer: " << std::hex << name_ptr << std::endl;
+                         // Check if the pointer is valid before dereferencing
+                        if (IsValidPointer(name_ptr))
                         {
-                            buf[sizeof(buf) - 1] = '\0'; // Null-terminate the string to prevent overflow
-                            std::string found_text = std::string(buf);
-
-                            bool invalid_string = false;
-                            for (int i = 0; i < found_text.size(); i++)
+                            //std::cout << "Getting string!" << std::endl;
+                            char buf[0x50] = { 0 }; // Ensure the buffer is initialized
+                            // Copy data from the valid pointer to buf
+                            if (ReadProcessMemory(GetCurrentProcess(), name_ptr, buf, sizeof(buf) - 1, nullptr))
                             {
-                                if (!isalpha(found_text.at(i)) && found_text.at(i) != '_')
+                                buf[sizeof(buf) - 1] = '\0'; // Null-terminate the string to prevent overflow
+                                std::string found_text = std::string(buf);
+
+                                bool invalid_string = false;
+                                for (int i = 0; i < found_text.size(); i++)
                                 {
-                                    invalid_string = true;
-                                    break;
+                                    if (!isalpha(found_text.at(i)) && found_text.at(i) != '_')
+                                    {
+                                        invalid_string = true;
+                                        break;
+                                    }
                                 }
-                            }
 
-                            if (invalid_string)
-                                continue;
+                                if (invalid_string)
+                                    continue;
 
-                            if (!found_text.empty())
-                            {
-                                if (found_text.find("lense_color") != std::string::npos) {
-                                    return offset;
+                                if (!found_text.empty())
+                                {
+                                    //std::cout << "Found Text: " << found_text << std::endl;
+                                    if (found_text.find("lense_color") != std::string::npos) {
+                                        return offset;
+                                    }
                                 }
                             }
                         }
@@ -200,16 +209,9 @@ namespace cgame
             for (uintptr_t offset = 0x0; offset < 0x1000; offset += 0x1)
             {
                 auto value = *reinterpret_cast<Vector3*>(camera + offset);
-                if (are_floats_equal(value.x, 2013.586f, 0.01F) &&
-                    are_floats_equal(value.y, 21.049f, 0.01F) &&
-                    are_floats_equal(value.z, -2107.117f, 0.01F))
-                {
-                    return offset;
-                }
-
-                if (are_floats_equal(value.x, 2013.587f, 0.01F) &&
-                    are_floats_equal(value.y, 21.049f, 0.01F) &&
-                    are_floats_equal(value.z, -2107.116f, 0.01F))
+                if (are_floats_equal(value.x, 24567.050f, 0.01f) &&
+                    are_floats_equal(value.y, 38.245f, 0.01f) &&
+                    are_floats_equal(value.z, 1485.854f, 0.01f))
                 {
                     return offset;
                 }
@@ -224,9 +226,9 @@ namespace cgame
             {
                 auto value = *reinterpret_cast<Vector3*>(camera + offset);
                 auto value2 = *reinterpret_cast<Vector3*>(camera + offset + 0xC);
-                if (are_floats_equal(value.x, 0.138f) &&
-                    are_floats_equal(value.y, 0.029f) &&
-                    are_floats_equal(value2.x, -0.990f) &&
+                if (are_floats_equal(value.x, -0.063f) &&
+                    are_floats_equal(value.y, 0.031f) &&
+                    are_floats_equal(value2.x, -0.998f) &&
                     are_floats_equal(value2.z, 1.778f))
                 {
                     return offset;
@@ -243,7 +245,7 @@ namespace cgame
         {
             __try
             {
-                std::cout << "Searching offset: " << std::hex << offset << std::dec << std::endl;
+                //std::cout << "Searching offset: " << std::hex << offset << std::dec << std::endl;
                 auto pointer = *reinterpret_cast<uintptr_t*>(cgame + offset);
                 if (IsValidPointer((void*)pointer))
                 {
@@ -275,7 +277,9 @@ namespace cgame
             for (uintptr_t offset = 0x1000; offset < 0x2000; offset += 0x1)
             {
                 auto value = *reinterpret_cast<Vector3*>(ballistics + offset);
-                if (are_floats_equal(value.x, 1996.467f) && are_floats_equal(value.y, 16.761f) && are_floats_equal(value.z, -2104.721f))//value > -4.731)
+                if (are_floats_equal(value.x, 24549.810f) &&
+                    are_floats_equal(value.y, 30.420f) &&
+                    are_floats_equal(value.z, 1484.762f))//value > -4.731)
                 {
                     return offset;
                 }
@@ -409,7 +413,7 @@ namespace cgame
             {
                 uintptr_t find_mouseposition_ptr(uintptr_t gameui)
                 {
-                    for (uintptr_t offset = 0x0; offset < 0x1000; offset += 0x8)
+                    for (uintptr_t offset = 0x0; offset < 0x1000; offset += 0x4)
                     {
                         int monitor_width = 0;
                         HMONITOR hMonitor = MonitorFromWindow(GetConsoleWindow(), MONITOR_DEFAULTTONEAREST);
@@ -421,10 +425,11 @@ namespace cgame
                             //std::cout << "Monitor Width: " << monitor_width << std::endl;
                             int height = mi.rcMonitor.bottom - mi.rcMonitor.top;
                         }
+
                         //std::cout << "Getting pointer at " << std::hex << offset << std::dec << std::endl;
                         auto mouse_x = *reinterpret_cast<float*>(gameui + offset);
                         //std::cout << "X: " << mouse_x << std::endl;
-                        if ((int)mouse_x == (monitor_width / 2))
+                        if (are_floats_equal(mouse_x, (float)(monitor_width / 2), 0.1))
                         {
                             return offset;
                         }
@@ -502,8 +507,9 @@ namespace localplayer
                     std::string found_text = std::string(buf);
 
                     //std::cout << "Found Text: " << found_text << std::endl;
-                    if (!found_text.empty() && found_text.find("ownedUnitRef") != std::string::npos) {
-                        return offset + (4 * 0x8);
+                    if (!found_text.empty() && found_text.find("ownedUnitRef") != std::string::npos)
+                    {
+                        return offset + (3 * 0x8);
                     }
                 }
             }
@@ -566,7 +572,9 @@ namespace unit
         for (uintptr_t offset = 0x0; offset < 0x1000; offset += 0x1)
         {
             auto value = *reinterpret_cast<Vector3*>(localunit + offset);
-            if (are_floats_equal(value.x, -7.562f) && are_floats_equal(value.y, -2.739f) && are_floats_equal(value.z, -6.199f))//value > -4.731)
+            if (are_floats_equal(value.x, -7.562f) &&
+                are_floats_equal(value.y, -2.739f) &&
+                are_floats_equal(value.z, -6.199f))//value > -4.731)
             {
                 return offset;
             }
@@ -594,7 +602,9 @@ namespace unit
         for (uintptr_t offset = 0x0; offset < 0x2000; offset += 0x1)
         {
             auto value = *reinterpret_cast<Vector3*>(localunit + offset);
-            if (are_floats_equal(value.x, 1996.494f) && are_floats_equal(value.y, 18.718f) && are_floats_equal(value.z, -2104.729f))//value > -4.731)
+            if (are_floats_equal(value.x, 24549.810f) &&
+                are_floats_equal(value.y, 35.924f) &&
+                are_floats_equal(value.z, 1484.762f))//value > -4.731)
             {
                 return offset;
             }
@@ -677,7 +687,7 @@ namespace unit
     {
         uintptr_t find_weapon_information_ptr(uintptr_t turret)
         {
-            for (uintptr_t offset = 0x0; offset < 0x2000; offset += 0x1)
+            for (uintptr_t offset = 0x0; offset < 0x2000; offset += 0x4)
             {
                 uintptr_t addr = *reinterpret_cast<uintptr_t*>(turret + offset);
                 //std::cout << "Getting pointer at " << std::hex << offset << std::dec << std::endl;
@@ -776,12 +786,12 @@ namespace unit
         {
             auto value = *reinterpret_cast<Vector3*>(localunit + offset);
             auto value2 = *reinterpret_cast<Vector3*>(localunit + offset + 0xC);
-            if (are_floats_equal(value.x, -0.986f) &&
-                are_floats_equal(value.y, 0.097f) &&
-                are_floats_equal(value.z, 0.138f) &&
-                are_floats_equal(value2.x, 0.096f) &&
+            if (are_floats_equal(value.x, -0.993f) &&
+                are_floats_equal(value.y, 0.093f) &&
+                are_floats_equal(value.z, -0.063f) &&
+                are_floats_equal(value2.x, 0.093f) &&
                 are_floats_equal(value2.y, 0.995f) &&
-                are_floats_equal(value2.z, -0.013f))
+                are_floats_equal(value2.z, 0.005f))
             {
                 return offset;
             }
@@ -797,7 +807,9 @@ namespace unit
             for (uintptr_t offset = 0x0; offset < 0x2000; offset += 0x1)
             {
                 auto value = *reinterpret_cast<Vector3d*>(airmovement + offset);
-                if (are_floats_equal(value.x, -0.041) && are_floats_equal(value.y, 0.004) && are_floats_equal(value.z, 0.009))//value > -4.731)
+                if (are_doubles_equal(value.x, -0.035) &&
+                    are_doubles_equal(value.y, -0.003) &&
+                    are_doubles_equal(value.z, -0.002))//value > -4.731)
                 {
                     return offset;
                 }

@@ -185,10 +185,10 @@ int real_main(HMODULE hModule)
 
     auto game_base = (uintptr_t)GetModuleHandle(NULL);
     auto cgame_sig = find_rel("48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? F3 0F 10 8D F8 06 00 00");
-    auto local_player_sig = find_rel("48 8B 0D ?? ?? ?? ?? B0 FF 48 85 C9 74 04 0F B6 41 08 88 44 24 42 48 8D 05 ?? ?? ?? ?? 48 89 44 24 28 48 8D 4C 24 28 B2 FF E8 ?? ?? ?? ?? 48 89 7C 24 28 83 7C 24 48 00 79 10");
+    auto local_player_sig = find_rel("48 8B 0D ? ? ? ? B2 FF"); //"48 8B 0D ?? ?? ?? ?? B0 FF 48 85 C9 74 04 0F B6 41 08 88 44 24 42 48 8D 05 ?? ?? ?? ?? 48 89 44 24 28 48 8D 4C 24 28 B2 FF E8 ?? ?? ?? ?? 48 89 7C 24 28 83 7C 24 48 00 79 10");
     auto hud_sig = find_rel("48 8B 15 ?? ?? ?? ?? 0F 57 C0 0F 2E 82 94 03 00 00");
     auto yaw_sig = find_rel("48 8B 0D ?? ?? ?? ?? 48 89 88 1C 22 00 00");
-    auto alllistdata_sig = find_rel("48 8D 0D ? ? ? ? 4C 8D 44 24 ? 89 FA 41 B9 ? ? ? ? E8 ? ? ? ? 48 85 C0 74 50");
+    auto alllistdata_sig = find_rel("48 8D 0D ?? ?? ?? ?? 4C 8D 44 24 30 E8 ?? ?? ?? ?? 0F 28 74 24 60");
 
     if (cgame_sig < 0x100000)
     {
@@ -386,7 +386,7 @@ int real_main(HMODULE hModule)
             auto turret_offset = find_turret_ptr(local_unit);
             unit_dump.add("turret_offset", turret_offset);
 
-            if (turret_offset != NULL)
+            if (false) //turret_offset != NULL)
             {
                 auto turret = *reinterpret_cast<uintptr_t*>(local_unit + turret_offset);
                 std::cout << "Dumping weapon_information_offset!" << std::endl;
@@ -409,7 +409,10 @@ int real_main(HMODULE hModule)
             unit_dump.add("rotation_matrix_offset", rotation_matrix_offset);
 
             std::cout << "Dumping airmovement!" << std::endl;
-            auto airmovement = *reinterpret_cast<uintptr_t*>(local_unit + position_offset + 0x10);
+            auto airmovement_offset = local_unit + position_offset + 0x10;
+            auto airmovement = *reinterpret_cast<uintptr_t*>(airmovement_offset);
+
+            unit_dump.add("airmovement_offset", airmovement_offset);
 
             if (IsValidPointer((void*)airmovement))
             {
