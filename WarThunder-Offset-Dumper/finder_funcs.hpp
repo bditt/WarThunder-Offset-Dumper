@@ -426,10 +426,12 @@ namespace cgame
                             int height = mi.rcMonitor.bottom - mi.rcMonitor.top;
                         }
 
+                        monitor_width /= 2;
+
                         //std::cout << "Getting pointer at " << std::hex << offset << std::dec << std::endl;
                         auto mouse_x = *reinterpret_cast<float*>(gameui + offset);
                         //std::cout << "X: " << mouse_x << std::endl;
-                        if (are_floats_equal(mouse_x, (float)(monitor_width / 2), 0.1))
+                        if (mouse_x > (monitor_width - 1) && mouse_x < (monitor_width + 1))
                         {
                             return offset;
                         }
