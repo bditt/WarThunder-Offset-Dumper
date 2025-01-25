@@ -209,9 +209,9 @@ namespace cgame
             for (uintptr_t offset = 0x0; offset < 0x1000; offset += 0x1)
             {
                 auto value = *reinterpret_cast<Vector3*>(camera + offset);
-                if (are_floats_equal(value.x, 24567.050f, 0.01f) &&
-                    are_floats_equal(value.y, 38.245f, 0.01f) &&
-                    are_floats_equal(value.z, 1485.854f, 0.01f))
+                if (are_floats_equal(value.x, 24566.830f, 0.01f) &&
+                    are_floats_equal(value.y, 38.168f, 0.01f) &&
+                    are_floats_equal(value.z, 1485.826f, 0.01f))
                 {
                     return offset;
                 }
@@ -274,12 +274,12 @@ namespace cgame
     {
         uintptr_t find_bombpred_ptr(uintptr_t ballistics)
         {
-            for (uintptr_t offset = 0x1000; offset < 0x2000; offset += 0x1)
+            for (uintptr_t offset = 0x0000; offset < 0x2000; offset += 0x1)
             {
                 auto value = *reinterpret_cast<Vector3*>(ballistics + offset);
-                if (are_floats_equal(value.x, 24549.810f) &&
+                if (are_floats_equal(value.x, 24549.592f) &&
                     are_floats_equal(value.y, 30.420f) &&
-                    are_floats_equal(value.z, 1484.762f))//value > -4.731)
+                    are_floats_equal(value.z, 1484.755f))//value > -4.731)
                 {
                     return offset;
                 }
@@ -604,9 +604,9 @@ namespace unit
         for (uintptr_t offset = 0x0; offset < 0x2000; offset += 0x1)
         {
             auto value = *reinterpret_cast<Vector3*>(localunit + offset);
-            if (are_floats_equal(value.x, 24549.810f) &&
-                are_floats_equal(value.y, 35.924f) &&
-                are_floats_equal(value.z, 1484.762f))//value > -4.731)
+            if (are_floats_equal(value.x, 24549.592f) &&
+                are_floats_equal(value.y, 35.843f) &&
+                are_floats_equal(value.z, 1484.755f))//value > -4.731)
             {
                 return offset;
             }
@@ -718,9 +718,9 @@ namespace unit
                 for (uintptr_t offset = 0x0; offset < 0x1000; offset += 0x1)
                 {
                     auto value = *reinterpret_cast<Vector3*>(weapon_info + offset);
-                    if (are_floats_equal(value.x, 1996.494f) &&
-                        are_floats_equal(value.y, 18.718f) &&
-                        are_floats_equal(value.z, -2104.729f))
+                    if (are_floats_equal(value.x, 24549.592f) &&
+                        are_floats_equal(value.y, 35.843f) &&
+                        are_floats_equal(value.z, 1484.755f))
                     {
                         return offset;
                     }
