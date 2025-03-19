@@ -413,27 +413,42 @@ namespace cgame
             {
                 uintptr_t find_mouseposition_ptr(uintptr_t gameui)
                 {
+					bool foundonce = false;
+                    int monitor_width = 0;
+                    int monitor_height = 0;
+                    HMONITOR hMonitor = MonitorFromWindow(GetConsoleWindow(), MONITOR_DEFAULTTONEAREST);
+                    MONITORINFO mi;
+                    mi.cbSize = sizeof(mi);
+
+                    if (GetMonitorInfo(hMonitor, &mi)) {
+                        monitor_width = mi.rcMonitor.right - mi.rcMonitor.left;
+                        //std::cout << "Monitor Width: " << monitor_width << std::endl;
+                        monitor_height = mi.rcMonitor.bottom - mi.rcMonitor.top;
+                    }
+
+                    monitor_width /= 2;
+                    monitor_height /= 2;
+                    std::cout << "Monitor Width: " << monitor_width << " Monitor Height: " << monitor_height << std::endl;
+
                     for (uintptr_t offset = 0x0; offset < 0x1000; offset += 0x4)
                     {
-                        int monitor_width = 0;
-                        HMONITOR hMonitor = MonitorFromWindow(GetConsoleWindow(), MONITOR_DEFAULTTONEAREST);
-                        MONITORINFO mi;
-                        mi.cbSize = sizeof(mi);
-
-                        if (GetMonitorInfo(hMonitor, &mi)) {
-                            monitor_width = mi.rcMonitor.right - mi.rcMonitor.left;
-                            //std::cout << "Monitor Width: " << monitor_width << std::endl;
-                            int height = mi.rcMonitor.bottom - mi.rcMonitor.top;
-                        }
-
-                        monitor_width /= 2;
-
                         //std::cout << "Getting pointer at " << std::hex << offset << std::dec << std::endl;
                         auto mouse_x = *reinterpret_cast<float*>(gameui + offset);
+						auto mouse_y = *reinterpret_cast<float*>(gameui + offset + 0x4);
+
+                        if (offset == 0xd60)
+                        {
+                            std::cout << "!!!!!!!! CORRECT !!!!!!" << std::endl;
+                            std::cout << "X: " << mouse_x << " Y: " << mouse_y << std::endl;
+                        }
+
+
                         //std::cout << "X: " << mouse_x << std::endl;
                         if (mouse_x > (monitor_width - 1) && mouse_x < (monitor_width + 1))
                         {
-                            return offset;
+                            std::cout << "Found: " << std::hex << offset << std::dec << "\nX: " << mouse_x << " Y: " << mouse_y << std::endl;
+                            if (mouse_y > (monitor_width - 100) && mouse_y < (monitor_width + 100))
+                                return offset;
                         }
                     }
                     return NULL;
@@ -617,13 +632,13 @@ namespace unit
 
     uintptr_t find_info_ptr(uintptr_t localunit)
     {
-        for (uintptr_t offset = 0x1000; offset < 0x2000; offset += 0x8)
+        for (uintptr_t offset = 0x0000; offset < 0x2000; offset += 0x4)
         {
             uintptr_t addr = *reinterpret_cast<uintptr_t*>(localunit + offset);
             //std::cout << "Getting pointer at " << std::hex << offset << std::dec << std::endl;
             if (IsValidPointer((void*)addr))
             {
-                for (uintptr_t offset2 = 0x0; offset2 < 0x200; offset2 += 0x8)
+                for (uintptr_t offset2 = 0x0; offset2 < 0x500; offset2 += 0x4)
                 {
                     //std::cout << "Getting pointer2 at " << std::hex << offset2 << std::dec << std::endl;
                     auto name_ptr = *reinterpret_cast<void**>(addr + offset2);
@@ -652,13 +667,13 @@ namespace unit
 
     uintptr_t find_turret_ptr(uintptr_t localunit)
     {
-        for (uintptr_t offset = 0x1000; offset < 0x2000; offset += 0x1)
+        for (uintptr_t offset = 0x000; offset < 0x2000; offset += 0x4)
         {
             uintptr_t addr = *reinterpret_cast<uintptr_t*>(localunit + offset);
             //std::cout << "Getting pointer at " << std::hex << offset << std::dec << std::endl;
             if (IsValidPointer((void*)addr))
             {
-                for (uintptr_t offset2 = 0x0; offset2 < 0x200; offset2 += 0x1)
+                for (uintptr_t offset2 = 0x0; offset2 < 0x500; offset2 += 0x1)
                 {
                     //std::cout << "Getting pointer2 at " << std::hex << offset2 << std::dec << std::endl;
                     auto name_ptr = *reinterpret_cast<void**>(addr + offset2);

@@ -184,10 +184,10 @@ int real_main(HMODULE hModule)
     SetConsoleTitleA("bditt's War Thunder offset dumper! https://github.com/bditt/WarThunder-Offset-Dumper");
 
     auto game_base = (uintptr_t)GetModuleHandle(NULL);
-    auto cgame_sig = find_rel("48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? F3 0F 10 8D F8 06 00 00");
-    auto local_player_sig = find_rel("48 8B 0D ?? ?? ?? ?? 3A 81"); //"48 8B 0D ?? ?? ?? ?? B0 FF 48 85 C9 74 04 0F B6 41 08 88 44 24 42 48 8D 05 ?? ?? ?? ?? 48 89 44 24 28 48 8D 4C 24 28 B2 FF E8 ?? ?? ?? ?? 48 89 7C 24 28 83 7C 24 48 00 79 10");
-    auto hud_sig = find_rel("48 8B 15 ?? ?? ?? ?? 0F 57 C0 0F 2E 82 94 03 00 00");
-    auto yaw_sig = find_rel("48 8B 0D ?? ?? ?? ?? 48 89 88 1C 22 00 00");
+    auto cgame_sig = find_rel("48 8B 05 ?? ?? ?? ?? 48 85 C0 74 0F 0F B6 80 D3 00 00 00");
+    auto local_player_sig = find_rel("48 8B 0D ?? ?? ?? ?? 48 85 C9 74 0B B2 01"); //"48 8B 0D ?? ?? ?? ?? B0 FF 48 85 C9 74 04 0F B6 41 08 88 44 24 42 48 8D 05 ?? ?? ?? ?? 48 89 44 24 28 48 8D 4C 24 28 B2 FF E8 ?? ?? ?? ?? 48 89 7C 24 28 83 7C 24 48 00 79 10");
+    auto hud_sig = find_rel("48 8B 0D ?? ?? ?? ?? 31 D2 80 79 35 00 0F 94 C2 80 BC 56 9C 00 00 00 00");
+    auto yaw_sig = find_rel("48 8B 0D ? ? ? ? 48 89 88 ? ? ? ? F3 0F 10 80");
     auto alllistdata_sig = find_rel("48 8D 0D ?? ?? ?? ?? 4C 8D 44 24 30 E8 ?? ?? ?? ?? 0F 28 74 24 60");
 
     if (cgame_sig < 0x100000)
@@ -346,7 +346,7 @@ int real_main(HMODULE hModule)
 
     if (localunit_offset != NULL)
     {
-        auto local_unit = *reinterpret_cast<uintptr_t*>(local_player_ptr + localunit_offset);
+        auto local_unit = *reinterpret_cast<uintptr_t*>(local_player_ptr + localunit_offset) - 1;
         if (IsValidPointer((void*)local_unit))
         {
             std::cout << "Dumping Unit!" << std::endl;
